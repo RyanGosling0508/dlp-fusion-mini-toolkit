@@ -1,0 +1,23 @@
+{
+  "tbox": {
+    "classes": ["Thing", "LivingThing", "Animal", "Human", "Cat", "Dog"],
+    "properties": ["hasParent", "hasChild", "hasPet"],
+    "subClassOf": [
+      {"sub": "LivingThing", "super": "Thing"},
+      {"sub": "Animal", "super": "LivingThing"},
+      {"sub": "Human", "super": "Animal"},
+      {"sub": "Cat", "super": "Animal"},
+      {"sub": "Dog", "super": "Animal"}
+    ],
+    "transitiveProperty": ["hasParent"]
+  },
+  "abox": {
+    "individuals": ["Tom", "Mary", "Fluffy", "Rex"],
+    "types": [
+      {"individual": "Tom", "class": "Human"},
+      {"individual": "Mary", "class": "Human"},
+      {"individual": "Fluffy", "class": "Cat"},
+      {"individual": "Rex", "class": "Dog"}
+    ]
+  }
+}

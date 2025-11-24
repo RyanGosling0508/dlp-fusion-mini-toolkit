@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DLP-Fusion Knowledge Base",
+  "type": "object",
+  "required": ["tbox", "abox"],
+  "properties": {
+    "tbox": {
+      "type": "object",
+      "description": "TBox - Terminological Box (schema/ontology)",
+      "properties": {
+        "classes": {
+          "type": "array",
+          "description": "List of class names",
+          "items": {"type": "string"}
+        },
+        "properties": {
+          "type": "array",
+          "description": "List of property names",
+          "items": {"type": "string"}
+        },
+        "subClassOf": {
+          "type": "array",
+          "description": "SubClass relationships",
+          "items": {
+            "type": "object",
+            "required": ["sub", "super"],
+            "properties": {
+              "sub": {"type": "string"},
+              "super": {"type": "string"}
+            }
+          }
+        },
+        "transitiveProperty": {
+          "type": "array",
+          "description": "List of transitive properties",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "abox": {
+      "type": "object",
+      "description": "ABox - Assertional Box (instances)",
+      "properties": {
+        "individuals": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "types": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["individual", "class"],
+            "properties": {
+              "individual": {"type": "string"},
+              "class": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}
