@@ -6,21 +6,13 @@
   "properties": {
     "tbox": {
       "type": "object",
-      "description": "TBox - Terminological Box (schema/ontology)",
       "properties": {
-        "classes": {
-          "type": "array",
-          "description": "List of class names",
-          "items": {"type": "string"}
-        },
-        "properties": {
-          "type": "array",
-          "description": "List of property names",
-          "items": {"type": "string"}
-        },
+        "classes": { "type": "array", "items": {"type": "string"} },
+
+        "properties": { "type": "array", "items": {"type": "string"} },
+
         "subClassOf": {
           "type": "array",
-          "description": "SubClass relationships",
           "items": {
             "type": "object",
             "required": ["sub", "super"],
@@ -30,21 +22,70 @@
             }
           }
         },
+
+        "subPropertyOf": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["sub", "super"],
+            "properties": {
+              "sub": {"type": "string"},
+              "super": {"type": "string"}
+            }
+          }
+        },
+
+        "inverseOf": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["p", "inv"],
+            "properties": {
+              "p": {"type": "string"},
+              "inv": {"type": "string"}
+            }
+          }
+        },
+
+        "domain": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["property", "class"],
+            "properties": {
+              "property": {"type": "string"},
+              "class": {"type": "string"}
+            }
+          }
+        },
+
+        "range": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["property", "class"],
+            "properties": {
+              "property": {"type": "string"},
+              "class": {"type": "string"}
+            }
+          }
+        },
+
         "transitiveProperty": {
           "type": "array",
-          "description": "List of transitive properties",
           "items": {"type": "string"}
         }
       }
     },
+
     "abox": {
       "type": "object",
-      "description": "ABox - Assertional Box (instances)",
       "properties": {
         "individuals": {
           "type": "array",
           "items": {"type": "string"}
         },
+
         "types": {
           "type": "array",
           "items": {
@@ -53,6 +94,19 @@
             "properties": {
               "individual": {"type": "string"},
               "class": {"type": "string"}
+            }
+          }
+        },
+
+        "relations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["property", "from", "to"],
+            "properties": {
+              "property": {"type": "string"},
+              "from": {"type": "string"},
+              "to": {"type": "string"}
             }
           }
         }
