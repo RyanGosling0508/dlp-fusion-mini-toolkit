@@ -1,153 +1,97 @@
 # DLP-Fusion Mini-Toolkit
 
-A lightweight reasoning toolkit that translates a DHL subset of Description Logic (DL) into a Datalog/SQLite-style rule system. The system loads knowledge bases in JSON format, materializes logical inferences inside SQLite, and supports DL-style instance and subsumption queries via a simple CLI.
+### CSE498-46 Knowledge Representation
+
+### Yutong Chen
+
+DLP-Fusion is a small reasoning toolkit that translates a **DHL subset** of
+Description Logic into a Datalog-style rule engine on top of **SQLite**.
+
+It supports:
+
+* Loading a lightweight JSON knowledge base (KB)
+* Translating a DHL fragment into relational tables
+* Materializing inferences using SQL rules
+* Answering DL-style queries (`type`, `sub`, `subprop`) via a simple CLI
+
+The project is inspired by the paper:
+
+> Grosof et al., **"Description Logic Programs: Combining Logic Programs with
+> Description Logics"**, WWW 2003.
 
 ---
 
-## **1. Features (Weeks 1–3 Completed)**
+## 1. DHL Fragment Supported
 
-### ✅ **Lightweight JSON DHL Subset Parser**
+The toolkit focuses on a small, Horn-style DHL fragment with:
 
-Supports TBox and ABox structures:
+### TBox constructs
 
-* `subClassOf`
-* `subPropertyOf`
-* `inverseOf`
-* `domain`
-* `range`
-* `transitiveProperty`
-* `types`
-* `relations`
+* `subClassOf(C, D)` – subclass axioms
+* `subPropertyOf(R, S)` – subproperty axioms
+* `inverseOf(R, S)` – inverse roles
+* `domain(R, C)` – domain typing
+* `range(R, C)` – range typing
+* `transitiveProperty(R)` – transitive roles
 
-### ✅ **SQLite Schema for DL/Horn Mapping**
+### ABox assertions
 
-Implements tables:
+* `Type(a, C)` – individual `a` is instance of class `C`
+* `Rel(R, a, b)` – role `R` holds between `a` and `b`
 
-* `Class(sub, super)`
-* `Property(sub, super)`
-* `Transitive(property)`
-* `Inverse(p, inv)`
-* `Domain(property, class)`
-* `Range(property, class)`
-* `Type(individual, class)`
-* `Rel(property, from_ind, to_ind)`
-
-Includes optimized indexes for query performance.
-
-### ✅ **Recursive Closures Using WITH RECURSIVE**
-
-* `ClassClosure` — transitive closure of subclass hierarchy.
-* `PropertyClosure` — transitive closure of subproperty hierarchy.
-
-Enables queries like:
-
-```
-query sub Cat Thing → True
-query subprop hasParent hasAncestor → True
-```
-
-### ✅ **Materialized Reasoning (Week 3)**
-
-At KB load time, the system automatically computes:
-
-* **Inverse roles**: `Rel(p, x, y) → Rel(inv, y, x)`
-* **Domain typing**: `Rel(p, x, y) & domain(p, C) → Type(x, C)`
-* **Range typing**: `Rel(p, x, y) & range(p, C) → Type(y, C)`
-* **Transitive role closure** for properties listed in `transitiveProperty`
-
-Example inferred facts:
-
-```
-Type(Tom, Animal)   # via domain rule
-Type(Mary, Animal)  # via range rule
-Rel(hasChild, Mary, Tom)  # via inverseOf
-```
-
-### ✅ **CLI Query Engine**
-
-```
-python dlp_fusion.py init
-python dlp_fusion.py load examples/simple_kb.json
-python dlp_fusion.py query type Tom Human
-python dlp_fusion.py query sub Cat Thing
-python dlp_fusion.py query subprop hasParent hasAncestor
-```
+This is expressive enough to illustrate the DLP-style intersection between
+Description Logics and Logic Programming without a heavy OWL reasoner.
 
 ---
 
-## **2. File Structure**
+## 2. Architecture & File Structure
+
+Project layout (simplified):
 
 ```
 project/
-│   dlp_fusion.py
-│   README.md
+│
+├── dlp_fusion.py           # main engine + CLI
+├── requirements.txt        # Python dependencies
 │
 ├── sql/
-│   └── schema.sql
+│   └── schema.sql          # SQLite schema + recursive closure views
 │
 ├── examples/
-│   └── simple_kb.json
+│   └── simple_kb.json      # example DHL knowledge base
+│
+├── schemas/
+│   └── kb_schema.json      # JSON Schema for KB validation
 │
 └── tests/
-    └── test_correctness.py (Week 4)
+    └── test_correctness.py # unit tests for core reasoning features
 ```
+
+### SQLite schema (`sql/schema.sql`)
+
+Main tables:
+
+* `Class(sub, super)` – subclass axioms
+* `Property(sub, super)` – subproperty axioms
+* `Transitive(property)` – transitive roles
+* `Inverse(p, inv)` – inverse roles
+* `Domain(property, class)` – domain typing
+* `Range(property, class)` – range typing
+* `Type(individual, class)` – ABox types
+* `Rel(property, from_ind, to_ind)` – ABox role assertions
+
+Recursive closure views:
+
+* `ClassClosure(sub, super)`
+* `PropertyClosure(sub, super)`
+
+Both use `WITH RECURSIVE` to compute transitive closure.
 
 ---
 
-## **3. Installation & Setup**
+## 3. JSON KB Format
 
-### **Create Environment**
-
-```
-conda create -n dlp_fusion python=3.11 -y
-conda activate dlp_fusion
-```
-
-### **Run Initialization**
-
-```
-python dlp_fusion.py init
-```
-
-### **Load Knowledge Base**
-
-```
-python dlp_fusion.py load examples/simple_kb.json
-```
-
----
-
-## **4. Query Usage**
-
-### **Instance Checking**
-
-```
-python dlp_fusion.py query type Tom Animal
-```
-
-### **Subclass Checking**
-
-```
-python dlp_fusion.py query sub Cat Thing
-```
-
-### **Subproperty Checking**
-
-```
-python dlp_fusion.py query subprop hasParent hasAncestor
-```
-
----
-
-## **5. Example KB (simple_kb.json)**
-
-A compact ontology demonstrating:
-
-* subclass hierarchy
-* property hierarchy
-* inverse roles
-* domain/range typing
-* transitive roles
+Example: `examples/simple_kb.json` (simplified):
 
 ```json
 {
@@ -156,81 +100,189 @@ A compact ontology demonstrating:
     "properties": ["hasParent", "hasAncestor", "hasChild", "ownsPet"],
 
     "subClassOf": [
-      {"sub": "LivingThing", "super": "Thing"},
-      {"sub": "Animal", "super": "LivingThing"},
-      {"sub": "Human", "super": "Animal"},
-      {"sub": "Cat", "super": "Animal"},
-      {"sub": "Dog", "super": "Animal"}
+      { "sub": "LivingThing", "super": "Thing" },
+      { "sub": "Animal", "super": "LivingThing" },
+      { "sub": "Human", "super": "Animal" },
+      { "sub": "Cat", "super": "Animal" },
+      { "sub": "Dog", "super": "Animal" }
     ],
 
     "subPropertyOf": [
-      {"sub": "hasParent", "super": "hasAncestor"}
+      { "sub": "hasParent", "super": "hasAncestor" }
     ],
 
     "inverseOf": [
-      {"p": "hasParent", "inv": "hasChild"}
+      { "p": "hasParent", "inv": "hasChild" }
+    ],
+
+    "transitiveProperty": [
+      "hasAncestor"
     ],
 
     "domain": [
-      {"property": "hasParent", "class": "Animal"}
+      { "property": "hasParent", "class": "Animal" }
     ],
 
     "range": [
-      {"property": "hasParent", "class": "Animal"}
-    ],
-
-    "transitiveProperty": ["hasAncestor"]
+      { "property": "hasParent", "class": "Animal" }
+    ]
   },
 
   "abox": {
+    "individuals": ["Tom", "Mary", "Fluffy", "Rex"],
+
     "types": [
-      {"individual": "Tom", "class": "Human"},
-      {"individual": "Fluffy", "class": "Cat"}
+      { "individual": "Tom", "class": "Human" },
+      { "individual": "Fluffy", "class": "Cat" }
     ],
 
     "relations": [
-      {"property": "hasParent", "from": "Tom", "to": "Mary"}
+      { "property": "hasParent", "from": "Tom", "to": "Mary" }
     ]
   }
 }
 ```
 
----
-
-## **6. Progress Summary (Weeks 1–3)**
-
-### **Week 1 – Foundations**
-
-* Created Conda environment & VS Code setup
-* Designed JSON schema and SQLite schema
-* Implemented base CLI (`init`, `load`)
-* Added simple KB for testing
-
-### **Week 2 – Core Reasoning Infrastructure**
-
-* Implemented full JSON loader
-* Added recursive SQL: `ClassClosure`, `PropertyClosure`
-* Added subsumption and subproperty queries
-* Verified closure correctness with sample KB
-
-### **Week 3 – Materialized Logical Rules**
-
-* Implemented inverseOf, domain, range rules
-* Implemented transitive role closure
-* Integrated inference into load-time materialization
-* Verified all rules using updated KB examples
-
-System now supports complete subclass/property closure + core DHL reasoning.
+The KB is validated against `schemas/kb_schema.json` using `jsonschema`. If the schema
+file is missing, validation is skipped with a warning.
 
 ---
 
-## **7. Next Steps (Week 4+)**
+## 4. Setup Instructions
 
-* Build correctness test suite (unittest)
-* Add reasoning chain explanation (optional)
-* Add performance evaluation scripts
-* Prepare final demo and report
+### Requirements
+
+* **Python** ≥ 3.10
+* **SQLite** (standard Python `sqlite3` module)
+* OS: tested on Windows 11 and Linux, but should run on any OS with Python 3.
+
+### Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Dependencies include:
+
+* `jsonschema` – for KB validation
+* `tabulate` – for pretty-printing the materialized `Rel` table
 
 ---
 
-Ready for extension into full DHL/Datalog hybrid reasoning.
+## 5. CLI Usage
+
+All commands are run from the project root.
+
+### 1. Initialize the database
+
+```bash
+python dlp_fusion.py init
+```
+
+### 2. Load a knowledge base
+
+```bash
+python dlp_fusion.py load examples/simple_kb.json
+```
+
+This:
+
+1. Validates the JSON
+2. Inserts TBox + ABox facts
+3. Materializes inferences
+
+### 3. Inspect materialized relations
+
+```bash
+python dlp_fusion.py debug_rel
+```
+
+Example:
+
+```
+| property   | from   | to   |
+|------------|--------|------|
+| hasChild   | Mary   | Tom  |
+| hasParent  | Tom    | Mary |
+```
+
+### 4. Queries
+
+#### Instance checking
+
+```bash
+python dlp_fusion.py query type Tom Thing
+```
+
+#### Class subsumption
+
+```bash
+python dlp_fusion.py query sub Cat Thing
+```
+
+#### Subproperty subsumption
+
+```bash
+python dlp_fusion.py query subprop hasParent hasAncestor
+```
+
+---
+
+## 6. Materialization Rules
+
+1. **Inverse roles** — `Rel(p, x, y)` ⇒ `Rel(inv, y, x)`
+2. **Transitive roles** — recursive SQL closure
+3. **Domain typing** — `Rel(p, x, y)` + `domain(p, C)` ⇒ `Type(x, C)`
+4. **Range typing** — `Rel(p, x, y)` + `range(p, C)` ⇒ `Type(y, C)`
+
+Instance checking uses `Type` + `ClassClosure`.
+
+---
+
+## 7. Testing
+
+Run all tests:
+
+```bash
+python -m unittest discover -s tests
+```
+
+Covers:
+
+* Direct types
+* Class hierarchy typing
+* Domain & range typing
+* Inverse role expansion
+* Subclass & subproperty queries
+
+---
+
+## 8. Limitations & Future Work
+
+* Only a small DHL fragment is supported
+* No cardinality, nominals, complex role chains
+* No explanation traces
+
+Possible extensions:
+
+* More DL constructors
+* Proof explanation
+* Performance experiments
+* Importing OWL/RDF subsets
+
+---
+
+## 9. Demo Script
+
+```
+python dlp_fusion.py init
+python dlp_fusion.py load examples/simple_kb.json
+python dlp_fusion.py debug_rel
+
+python dlp_fusion.py query type Tom Thing
+python dlp_fusion.py query type Mary Animal
+python dlp_fusion.py query sub Cat Thing
+python dlp_fusion.py query subprop hasParent hasAncestor
+```
+
+This demonstrates loading, inference materialization, and DL-style queries.
