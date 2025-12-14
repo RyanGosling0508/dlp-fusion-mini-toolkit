@@ -52,7 +52,6 @@ class DLPFusion:
         with open(kb_file, "r", encoding="utf-8") as f:
             kb_data = json.load(f)
 
-        # Optional: validate KB JSON against schema
         schema_path = Path(__file__).parent / "schemas" / "kb_schema.json"
         if schema_path.exists():
             with open(schema_path, "r", encoding="utf-8") as sf:
@@ -70,26 +69,22 @@ class DLPFusion:
 
         tbox = kb_data.get("tbox", {})
 
-        # subClassOf
         for item in tbox.get("subClassOf", []):
             cursor.execute(
                 "INSERT OR IGNORE INTO Class (sub, super) VALUES (?, ?)",
                 (item["sub"], item["super"]),
             )
 
-        # subPropertyOf
         for item in tbox.get("subPropertyOf", []):
             cursor.execute(
                 "INSERT OR IGNORE INTO Property (sub, super) VALUES (?, ?)",
                 (item["sub"], item["super"]),
             )
 
-        # transitiveProperty  --- FIX: 支持字符串数组
         for item in tbox.get("transitiveProperty", []):
             if isinstance(item, str):
                 prop = item
             else:
-                # 兼容未来如果写成 {"property": "..."} 的形式
                 prop = item.get("property")
             if prop is None:
                 continue
@@ -97,29 +92,24 @@ class DLPFusion:
                 "INSERT OR IGNORE INTO Transitive (property) VALUES (?)",
                 (prop,),
             )
-
-        # inverseOf
         for item in tbox.get("inverseOf", []):
             cursor.execute(
                 "INSERT OR IGNORE INTO Inverse (p, inv) VALUES (?, ?)",
                 (item["p"], item["inv"]),
             )
 
-        # domain
         for item in tbox.get("domain", []):
             cursor.execute(
                 "INSERT OR IGNORE INTO Domain (property, class) VALUES (?, ?)",
                 (item["property"], item["class"]),
             )
 
-        # range
         for item in tbox.get("range", []):
             cursor.execute(
                 "INSERT OR IGNORE INTO Range (property, class) VALUES (?, ?)",
                 (item["property"], item["class"]),
             )
 
-        # ABox
         abox = kb_data.get("abox", {})
 
         for item in abox.get("types", []):
@@ -136,7 +126,6 @@ class DLPFusion:
 
         self.conn.commit()
 
-        # materialize inferences
         self.materialize_inferences()
 
         print("Knowledge base loaded successfully")
@@ -147,7 +136,6 @@ class DLPFusion:
     def materialize_inferences(self):
         cursor = self.conn.cursor()
 
-        # 1) inverseOf: Rel(p,x,y) -> Rel(inv,y,x)
         cursor.execute("SELECT p, inv FROM Inverse")
         for row in cursor.fetchall():
             p, inv = row["p"], row["inv"]
@@ -161,7 +149,6 @@ class DLPFusion:
                 (inv, p),
             )
 
-        # 2) transitive roles: for each transitive property r, compute closure and insert into Rel
         cursor.execute("SELECT property FROM Transitive")
         trans_props = [r["property"] for r in cursor.fetchall()]
 
@@ -181,7 +168,6 @@ class DLPFusion:
                 (r, r, r),
             )
 
-        # 3) domain typing: Rel(p,x,y) & Domain(p,C) -> Type(x,C)
         cursor.execute(
             """
             INSERT OR IGNORE INTO Type(individual, class)
@@ -191,7 +177,6 @@ class DLPFusion:
             """
         )
 
-        # 4) range typing: Rel(p,x,y) & Range(p,C) -> Type(y,C)
         cursor.execute(
             """
             INSERT OR IGNORE INTO Type(individual, class)
@@ -216,14 +201,12 @@ class DLPFusion:
             individual, class_name = args
             print(f"Checking: Is '{individual}' an instance of '{class_name}'?")
 
-            # 1) direct assertion
             cursor.execute(
                 "SELECT COUNT(*) FROM Type WHERE individual = ? AND class = ?",
                 (individual, class_name),
             )
             direct = cursor.fetchone()[0] > 0
 
-            # 2) via subclass hierarchy: Type(ind, C0) & ClassClosure(C0, class_name)
             cursor.execute(
                 """
                 SELECT COUNT(*)
@@ -303,14 +286,11 @@ def main():
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    # init
     subparsers.add_parser("init", help="Initialize database")
 
-    # load
     load_parser = subparsers.add_parser("load", help="Load knowledge base from JSON")
     load_parser.add_argument("file", help="JSON knowledge base file")
 
-    # query
     query_parser = subparsers.add_parser("query", help="Execute a query")
     query_parser.add_argument(
         "type",
@@ -319,7 +299,6 @@ def main():
     )
     query_parser.add_argument("args", nargs="+", help="Query arguments")
 
-    # debug_rel
     subparsers.add_parser("debug_rel", help="Print materialized Rel table")
 
     args = parser.parse_args()

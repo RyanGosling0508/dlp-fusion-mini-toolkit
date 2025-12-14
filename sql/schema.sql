@@ -1,5 +1,4 @@
 -- DLP-Fusion SQLite Schema
--- Week 1-3: DHL subset schema + recursive closures + materialization support
 
 DROP TABLE IF EXISTS Class;
 DROP TABLE IF EXISTS Property;
@@ -13,7 +12,7 @@ DROP TABLE IF EXISTS Rel;
 DROP VIEW IF EXISTS ClassClosure;
 DROP VIEW IF EXISTS PropertyClosure;
 
--- -----------------------------
+-------------------------------
 -- TBox Tables
 -- -----------------------------
 
@@ -53,7 +52,7 @@ CREATE TABLE Range (
 
 -- -----------------------------
 -- ABox Tables
--- -----------------------------
+-- ---------------------------
 
 CREATE TABLE Type (
     individual TEXT NOT NULL,
@@ -85,7 +84,7 @@ CREATE INDEX idx_dom_prop ON Domain(property);
 CREATE INDEX idx_rng_prop ON Range(property);
 
 -- -----------------------------
--- Recursive Closures (Week 2)
+-- Recursive Closures
 -- -----------------------------
 
 CREATE VIEW ClassClosure AS
